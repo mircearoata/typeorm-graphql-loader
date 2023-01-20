@@ -1,4 +1,4 @@
-import { Author, Book, DecoratorTest, Publisher, Review } from "../entity";
+import { Author, AddressRelation, Book, DecoratorTest, Publisher, Review } from "../entity";
 import {
   AuthorResolver,
   BookResolver,
@@ -36,7 +36,7 @@ export async function startup(
     database: `:memory:`,
     synchronize: true,
     dropSchema: true,
-    entities: [Author, Book, Publisher, Review, DecoratorTest],
+    entities: [Author, Book, Publisher, Review, DecoratorTest, AddressRelation],
     logging: !!options?.logging,
   });
 

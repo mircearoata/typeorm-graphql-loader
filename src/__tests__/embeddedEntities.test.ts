@@ -17,7 +17,7 @@ describe("Querying embedded entities", () => {
 
   it("can query embedded fields on an entity", async () => {
     const { connection, schema, loader } = helpers;
-    const author = await connection.getRepository(Author).findOne();
+    const author = await connection.getRepository(Author).findOne({ relations: ["address.relation"] });
 
     const query = `
       query authorById($id: Int!) {
@@ -31,7 +31,14 @@ describe("Querying embedded entities", () => {
             city
             state
             zip
-          }        
+            details {
+              county
+            }
+            relation {
+              id
+              country
+            }
+          }
         }
       }
     `;
@@ -50,6 +57,13 @@ describe("Querying embedded entities", () => {
         city: author?.address.city,
         state: author?.address.state,
         zip: author?.address.zip,
+        details: {
+          county: author?.address.details.county,
+        },
+        relation: {
+          id: author?.address.relation.id,
+          country: author?.address.relation.country,
+        }
       },
     };
 

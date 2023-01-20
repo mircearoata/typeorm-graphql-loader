@@ -1,6 +1,8 @@
-import { Column } from "typeorm";
+import { Column, JoinColumn, JoinTable, ManyToOne, OneToOne } from "typeorm";
 import { Field, ObjectType } from "type-graphql";
 import { ConfigureLoader } from "../../ConfigureLoader";
+import { AddressDetails } from "./AddressDetails";
+import { AddressRelation } from "./AddressRelation";
 
 @ObjectType()
 export class Address {
@@ -24,4 +26,12 @@ export class Address {
   @Field()
   @Column({ name: "postCode" })
   zip!: string;
+
+  @Field(() => AddressDetails)
+  @Column(() => AddressDetails)
+  details!: AddressDetails;
+
+  @Field(() => AddressRelation)
+  @ManyToOne(() => AddressRelation)
+  relation!: AddressRelation;
 }

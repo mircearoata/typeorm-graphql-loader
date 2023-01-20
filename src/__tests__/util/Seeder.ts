@@ -1,8 +1,9 @@
 import { Connection, EntityManager } from "typeorm";
-import { Author, Book, DecoratorTest, Publisher, Review } from "../entity";
+import { Author, AddressRelation, Book, DecoratorTest, Publisher, Review } from "../entity";
 import * as faker from "faker";
 
 export class Seeder {
+  private readonly NUM_ADDRESS_RELATIONS = 10;
   private readonly NUM_AUTHORS = 10;
   private readonly NUM_PUBLISHERS = 3;
   private readonly NUM_BOOKS = 50;
@@ -18,27 +19,50 @@ export class Seeder {
       city: faker.address.city(),
       state: faker.address.state(),
       zip: faker.address.zipCode(),
+      details: {
+        county: faker.address.county(),
+      },
     };
   }
 
   async seed() {
     await this.conn.transaction(async (entityManager) => {
-      const authors = await this.seedAuthors(entityManager);
-      const publishers = await this.seedPublishers(entityManager);
+      const addressRelations = await this.seedAddressRelations(entityManager);
+      const authors = await this.seedAuthors(entityManager, addressRelations);
+      const publishers = await this.seedPublishers(entityManager, addressRelations);
       const books = await this.seedBooks(entityManager, authors, publishers);
       await this.seedReviews(entityManager, books);
-      await this.seedDecoratorTests(entityManager, authors);
+      await this.seedDecoratorTests(entityManager, authors, addressRelations);
     });
   }
 
-  private async seedAuthors(manager: EntityManager) {
+  private async seedAddressRelations(manager: EntityManager) {
+    const addressRelations: Array<Partial<AddressRelation>> = [];
+    for (let i = 0; i < this.NUM_ADDRESS_RELATIONS; i++) {
+      addressRelations.push({
+        country: faker.address.country(),
+      });
+    }
+    await manager
+      .createQueryBuilder()
+      .insert()
+      .into(AddressRelation)
+      .values(addressRelations)
+      .execute();
+    return await manager.getRepository(AddressRelation).find();
+  }
+
+  private async seedAuthors(manager: EntityManager, addressRelations: AddressRelation[]) {
     const authors: Array<Partial<Author>> = [];
     for (let i = 0; i < this.NUM_AUTHORS; i++) {
       const author: Partial<Author> = {
         firstName: faker.name.firstName(),
         lastName: faker.name.lastName(),
         email: faker.internet.email(),
-        address: Seeder.addressFactory(),
+        address: {
+          ...Seeder.addressFactory(),
+          relation: addressRelations[i % this.NUM_ADDRESS_RELATIONS],
+        },
         phone: faker.phone.phoneNumber(),
       };
       authors.push(author);
@@ -53,13 +77,19 @@ export class Seeder {
     return await manager.getRepository(Author).find();
   }
 
-  private async seedPublishers(manager: EntityManager) {
+  private async seedPublishers(manager: EntityManager, addressRelations: AddressRelation[]) {
     const publishers: Array<Partial<Publisher>> = [];
     for (let i = 0; i < this.NUM_PUBLISHERS; i++) {
       const publisher: Partial<Publisher> = {
         name: faker.company.companyName(),
-        address: Seeder.addressFactory(),
-        poBox: Seeder.addressFactory(),
+        address: {
+          ...Seeder.addressFactory(),
+          relation: addressRelations[i % this.NUM_ADDRESS_RELATIONS],
+        },
+        poBox: {
+          ...Seeder.addressFactory(),
+          relation: addressRelations[i % this.NUM_ADDRESS_RELATIONS],
+        },
       };
       publishers.push(publisher);
     }
@@ -123,16 +153,23 @@ export class Seeder {
 
   private async seedDecoratorTests(
     manager: EntityManager,
-    authors: Array<Author>
+    authors: Array<Author>,
+    addressRelations: AddressRelation[]
   ) {
     const decoratorTests: Array<Partial<DecoratorTest>> = [];
     for (let i = 1; i <= this.NUM_DECORATOR_TESTS; i++) {
       const dt: Partial<DecoratorTest> = {
         testField: faker.lorem.words(1),
         testRelation: authors[i % this.NUM_AUTHORS],
-        testEmbed: Seeder.addressFactory(),
+        testEmbed:  {
+          ...Seeder.addressFactory(),
+          relation: addressRelations[i % this.NUM_ADDRESS_RELATIONS],
+        },
         testRemappedField: faker.lorem.words(1),
-        testRemappedEmbed: Seeder.addressFactory(),
+        testRemappedEmbed:  {
+          ...Seeder.addressFactory(),
+          relation: addressRelations[i % this.NUM_ADDRESS_RELATIONS],
+        },
         testRemappedRelation: authors[i % this.NUM_AUTHORS],
       };
       decoratorTests.push(dt);
